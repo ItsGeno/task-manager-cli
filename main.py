@@ -1,100 +1,135 @@
 import json
 import shutil
 
-booleanos = {True: "[X]", False: "[ ]"}
+STATUS_ICONS = {True: "[X]", False: "[ ]"}
 
-archivo = "tareas.json"
+TASKS_FILE = "tasks.json"
 
-class TareaNoEncontradaError(Exception):
+
+class TaskNotFoundError(Exception):
     pass
 
-class TareaCompletada(Exception):
+
+class TaskAlreadyCompletedError(Exception):
     pass
 
-class TareaVaciaError(Exception):
+
+class EmptyTaskError(Exception):
     pass
 
-def agregar_tarea(lista, nombre):
-    if not nombre.strip():
-        raise TareaVaciaError("El nombre de la tarea no puede estar vacío.")
-    tarea = {
-        "nombre": nombre.strip(),
-        "completada": False
+
+def add_task(tasks, name):
+    if not name.strip():
+        raise EmptyTaskError("The task name cannot be empty.")
+    task = {
+        "name": name.strip(),
+        "completed": False
     }
-    lista.append(tarea)
+    tasks.append(task)
 
 
-def listar_tareas(lista):
-    print("\nLista de tareas:")
-    if not lista:
-        print("No hay tareas en la lista.")
+def list_tasks(tasks):
+    print("\nTask list:")
+    if not tasks:
+        print("There are no tasks in the list.")
         return
-    for i, tarea in enumerate(lista, start=1):
-        estado = booleanos[tarea["completada"]]
-        print(f"{i}. {tarea['nombre']} - {estado}") 
+    for i, task in enumerate(tasks, start=1):
+        status = STATUS_ICONS[task["completed"]]
+        print(f"{i}. {task['name']} - {status}")
 
-def completar_tarea(lista, numero):
-    if numero < 1 or numero > len(lista):
-        raise TareaNoEncontradaError(numero)
-    if lista[numero - 1]["completada"]: 
-        raise TareaCompletada(numero)
-    lista[numero - 1]["completada"] = True
 
-def guardar_tareas(lista, archivo):
-    with open(archivo, "w", encoding="utf-8") as f:
-        json.dump(lista, f, ensure_ascii=False, indent=4)
+def complete_task(tasks, number):
+    if number < 1 or number > len(tasks):
+        raise TaskNotFoundError(number)
+    if tasks[number - 1]["completed"]:
+        raise TaskAlreadyCompletedError(number)
+    tasks[number - 1]["completed"] = True
 
-def cargar_tareas(archivo):
+
+def save_tasks(tasks, path):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(tasks, f, ensure_ascii=False, indent=4)
+
+
+def load_tasks(path):
     try:
-        with open(archivo, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
-        shutil.copy(archivo, archivo + ".bak")
-        print(f"Error: El archivo de tareas está corrupto. Se guardo una copia {archivo}.bak y se iniciará con una lista vacía.")
+        shutil.copy(path, path + ".bak")
+        print(f"Error: The tasks file is corrupted. A copy was saved as {path}.bak and a new empty list will be used.")
         return []
     except FileNotFoundError:
         return []
 
+def delete_task(tasks, number):
+    if number < 1 or number > len(tasks):
+        raise TaskNotFoundError(number)
+    return tasks.pop(number - 1)
+
+def confirm(question):
+    while True:
+        answer = input(f"{question} (Y/N): ").strip().lower()
+        if answer in ("y", "n"):
+            return answer == "y"
+
 def main():
-    tareas=cargar_tareas(archivo)
+    tasks = load_tasks(TASKS_FILE)
 
     while True:
-        print("\nOpciones:")
-        print("1. Agregar tarea")
-        print("2. Listar tareas")
-        print("3. Completar tarea")
-        print("4. Salir")
+        print("\nOptions:")
+        print("1. Add task")
+        print("2. List tasks")
+        print("3. Complete task")
+        print("4. Delete task")
+        print("5. Exit")
 
-        opcion = input("Seleccione una opción: ").strip()
+        option = input("Select an option: ").strip()
 
-        if opcion == "1":
-            nombre_tarea = input("Ingrese el nombre de la tarea: ").strip()
+        if option == "1":
+            task_name = input("Enter the task name: ").strip()
             try:
-                agregar_tarea(tareas, nombre_tarea)
-                guardar_tareas(tareas, archivo)
-                print(f"Tarea '{nombre_tarea}' agregada.")
-            except TareaVaciaError as e:
-                print(f"Error: {e} intenta de nuevo")
-
-        elif opcion == "2":
-            listar_tareas(tareas)
-        elif opcion == "3":
+                add_task(tasks, task_name)
+                save_tasks(tasks, TASKS_FILE)
+                print(f"Task '{task_name}' added.")
+            except EmptyTaskError as e:
+                print(f"Error: {e} Try again.")
+        elif option == "2":
+            list_tasks(tasks)
+        elif option == "3":
             try:
-                numero_tarea = int(input("Ingrese el número de la tarea a completar: "))
-                completar_tarea(tareas, numero_tarea)
-                guardar_tareas(tareas, archivo)
-                print(f"Tarea número {numero_tarea} completada.")
+                task_number = int(input("Enter the number of the task to complete: "))
+                complete_task(tasks, task_number)
+                save_tasks(tasks, TASKS_FILE)
+                name = tasks[task_number -1]["name"]
+                print(f"Task number {task_number}. {name} completed.")
             except ValueError:
-                print("Error: Debe ingresar un número válido.")
-            except TareaNoEncontradaError as e:
-                print(f"Error: la tarea {e} no existe")
-            except TareaCompletada as e:
-                print(f"Error: la tarea {e} ya está completada")
-        elif opcion == "4":
-            print("Saliendo del programa.")
+                print("Error: You must enter a valid number.")
+            except TaskNotFoundError as e:
+                print(f"Error: task {e} does not exist.")
+            except TaskAlreadyCompletedError as e:
+                print(f"Error: task {e} is already completed.")
+        elif option == "4":
+            try:
+                task_number = int(input("Enter the number of the task to delete: "))
+                if task_number < 1 or task_number > len(tasks):
+                    raise TaskNotFoundError(task_number)
+                if confirm("Are you sure you want to delete this task?"):
+                    deleted = delete_task(tasks, task_number)
+                    save_tasks(tasks, TASKS_FILE)
+                    print(f"Task {task_number}. {deleted['name']} deleted.")
+                else:
+                    print("Deletion cancelled.")
+            except ValueError:
+                print("Error: You must enter a valid number.")
+            except TaskNotFoundError as e:
+                print(f"Error: task {e} does not exist.")
+        elif option == "5":
+            print("Exiting the program.")
             break
         else:
-            print("Opción inválida. Por favor, seleccione una opción válida.")
+            print("Invalid option. Please select a valid option.")
+
 
 if __name__ == "__main__":
     main()

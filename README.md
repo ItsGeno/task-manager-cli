@@ -65,7 +65,7 @@ Tasks are stored in `tasks.json`, in the folder where you run the program. The f
 
 ##  Roadmap
 
-- [ ] Delete tasks
+- [X] Delete tasks
 - [ ] Edit a task name
 - [ ] Filter by pending and completed
 
