@@ -62,16 +62,27 @@ def load_tasks(path):
     except FileNotFoundError:
         return []
 
+
 def delete_task(tasks, number):
     if number < 1 or number > len(tasks):
         raise TaskNotFoundError(number)
     return tasks.pop(number - 1)
+
 
 def confirm(question):
     while True:
         answer = input(f"{question} (Y/N): ").strip().lower()
         if answer in ("y", "n"):
             return answer == "y"
+
+
+def edit_task(tasks, number, new_name):
+    if number < 1 or number > len(tasks):
+        raise TaskNotFoundError(number)
+    if not new_name.strip():
+        raise EmptyTaskError("The new name cannot be empty.")
+    tasks[number - 1]["name"] = new_name.strip()
+
 
 def main():
     tasks = load_tasks(TASKS_FILE)
@@ -82,7 +93,8 @@ def main():
         print("2. List tasks")
         print("3. Complete task")
         print("4. Delete task")
-        print("5. Exit")
+        print("5. Edit task")
+        print("6. Exit")
 
         option = input("Select an option: ").strip()
 
@@ -101,7 +113,7 @@ def main():
                 task_number = int(input("Enter the number of the task to complete: "))
                 complete_task(tasks, task_number)
                 save_tasks(tasks, TASKS_FILE)
-                name = tasks[task_number -1]["name"]
+                name = tasks[task_number - 1]["name"]
                 print(f"Task number {task_number}. {name} completed.")
             except ValueError:
                 print("Error: You must enter a valid number.")
@@ -125,6 +137,28 @@ def main():
             except TaskNotFoundError as e:
                 print(f"Error: task {e} does not exist.")
         elif option == "5":
+            try:
+                task_number = int(input("Enter the task number: "))
+                if task_number < 1 or task_number > len(tasks):
+                    raise TaskNotFoundError(task_number)
+                new_task_name = input("Enter the new task name: ").strip()
+                old_name = tasks[task_number - 1]["name"]
+                while True:
+                    if new_task_name.casefold().strip() == old_name.casefold().strip():
+                        print("The new name can't be the same as the old one.")
+                        new_task_name = input("Enter the new task name: ").strip()
+                    else:
+                        break
+                edit_task(tasks, task_number, new_task_name)
+                save_tasks(tasks, TASKS_FILE)
+                print(f"Task {task_number} renamed to '{new_task_name}'.")
+            except EmptyTaskError as e:
+                print(f"Error: {e} Try again.")
+            except ValueError:
+                print("Error: You must enter a valid number.")
+            except TaskNotFoundError as e:
+                print(f"Error: task {e} does not exist.")
+        elif option == "6":
             print("Exiting the program.")
             break
         else:
