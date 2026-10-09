@@ -1,5 +1,5 @@
 venv/
 __pycache__/
-task.json
-task.json.bak
+tasks.json
+tasks.json.bak
 .env
